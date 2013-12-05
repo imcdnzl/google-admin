@@ -13,7 +13,7 @@ function getSignature() {
   var result = authorisedUrlFetch(email, {});
   Browser.msgBox(result.getContentText());
 }
- 
+
 function setIndividualSignature() {
   Logger.log('[%s]\t Starting setIndividualSignature run', Date());
   if ( startupChecks()) { return; }
@@ -29,7 +29,7 @@ function setIndividualSignature() {
   } 
   Logger.log('[%s]\t Completed setIndividualSignature run', Date());
 }
- 
+
 function setAllSignatures() {
   Logger.log('[%s]\t Starting setAllSignatures run', Date());
   if ( startupChecks()) { return; }
@@ -43,7 +43,7 @@ function setAllSignatures() {
   }
   Logger.log('[%s]\t Completed setAllSignatures run', Date());
 }
- 
+
 function getTemplate(){
   Logger.log('[%s]\t Getting Template', Date());
   var settings = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Signature Settings');
@@ -54,7 +54,7 @@ function getTemplate(){
  
   return template;
 }
- 
+
 function setSignature(template, userData, row){
     var groupData = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Signature Group Settings'); 
     
@@ -85,7 +85,7 @@ function setSignature(template, userData, row){
     sendSignature(email, signature);
     Logger.log('[%s]\t Processing complete for user %s',Date(),email);
 }
- 
+
 function substituteVariablesFromRow(text, sheet, row) {
   //Generating two lists avoids the need to do lots of individual calls to the sheet
   var tags = sheet.getSheetValues(1, 1, 1, sheet.getLastColumn())[0];
@@ -95,7 +95,7 @@ function substituteVariablesFromRow(text, sheet, row) {
   }  
   return text;
 }
- 
+
 function substituteGroupVariables(text, dataSheet, lookupSheet, row) {
   //this function is still not great but at least it makes use of getSheet
   var tags = dataSheet.getSheetValues(1, 1, 1, dataSheet.getLastColumn())[0];
@@ -123,7 +123,7 @@ function substituteGroupVariables(text, dataSheet, lookupSheet, row) {
   
   return text;
 }
- 
+
 function sanitize(text){
   var invalid = ["[","^","$",".","|","?","*","+","(",")"];
   for(m=0;m<invalid.length;m++){
@@ -131,8 +131,7 @@ function sanitize(text){
   }
   return text;
 }
- 
- 
+
 function tagReplace(tag, value, text){
   var regOpen = sanitize(UserProperties.getProperty('regOpen'));
   var tagOpen = sanitize(UserProperties.getProperty('tagOpen'));
@@ -151,7 +150,7 @@ function tagReplace(tag, value, text){
   
   return text;
 }
- 
+
 function sendSignature(email, signature) {
   // https://developers.google.com/google-apps/email-settings/#updating_a_signature
   var requestData = {
@@ -165,7 +164,7 @@ function sendSignature(email, signature) {
     Browser.msgBox('Error settings signature', msg, Browser.Buttons.OK);
   }
 }
- 
+
 function checkUserIsValid(user){
   var userList = UserManager.getAllUsers();
   for ( u=0 ; u < userList.length ; u++ ) {
@@ -173,7 +172,7 @@ function checkUserIsValid(user){
   }
   return false;
 }
- 
+
 function getPayload(signature) {
   //First line is needed for XML, second isn't but we might as well do it for consistency
   signature = signature.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -218,7 +217,7 @@ function authorisedUrlFetch(email, requestData) {
   }
   return result;
 }
- 
+
 function onOpen() {
   //add a toolbar and list the functions you want to call externally
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -229,7 +228,7 @@ function onOpen() {
   menuEntries.push({name: 'Get All Users', functionName: 'getAllUsers'});
   ss.addMenu('Signatures', menuEntries);
 }
- 
+
 function startupChecks() {
   //Check that everything that is needed to run is there
   //I don't check that any of it makes sense, just that it exists.
@@ -251,8 +250,7 @@ function startupChecks() {
   requiredSheets.push({name: 'Summary', help: 'A "Summary" sheet must exist that contains a 1 header row and 1 row per user, with no gaps in either the 1st column or row, the 1st row must be the users usernames'});
   requiredSheets.push({name: 'Signature Settings', help: 'A "Signature Settings" sheet must exist that contains a the template in cell 2A and then has 1 header row and 1 row per company wide variable, with no empty header cells'});
   requiredSheets.push({name: 'Signature Group Settings', help: 'A "Signature Group Settings" sheet must exist that contains 3 Rows (setting values, what to substitute, comments) with every third row containing a column header'});
-//  requiredSheets.push({name: 'Users', help: 'A "Users" sheet must exist that can be empty as it will be blown away anyway...'});
-  
+ 
   var fail = false; 
   for ( s = 0; s < requiredProperties.length; s++) {
     var property = UserProperties.getProperty(requiredProperties[s].name);

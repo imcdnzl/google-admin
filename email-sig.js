@@ -1,3 +1,7 @@
+var userDataSheetName = 'Summary';
+var userSheetName = 'Users';
+var theSheet = SpreadsheetApp.getActiveSpreadsheet();
+
 function getSignature() {
   //pretty basic function for testing
   if ( startupChecks()) { return; }
@@ -9,7 +13,7 @@ function getSignature() {
   var result = authorisedUrlFetch(email, {});
   Browser.msgBox(result.getContentText());
 }
-
+ 
 function setIndividualSignature() {
   Logger.log('[%s]\t Starting setIndividualSignature run', Date());
   if ( startupChecks()) { return; }
@@ -25,12 +29,12 @@ function setIndividualSignature() {
   } 
   Logger.log('[%s]\t Completed setIndividualSignature run', Date());
 }
-
+ 
 function setAllSignatures() {
   Logger.log('[%s]\t Starting setAllSignatures run', Date());
   if ( startupChecks()) { return; }
   var userData = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Summary');
-
+ 
   var template = getTemplate();
   
   //Go through each user listing
@@ -39,7 +43,7 @@ function setAllSignatures() {
   }
   Logger.log('[%s]\t Completed setAllSignatures run', Date());
 }
-
+ 
 function getTemplate(){
   Logger.log('[%s]\t Getting Template', Date());
   var settings = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Signature Settings');
@@ -47,17 +51,17 @@ function getTemplate(){
   
   //Substitute the company wide variables into the template 
   template = substituteVariablesFromRow(template, settings, 2);
-
+ 
   return template;
 }
-
+ 
 function setSignature(template, userData, row){
     var groupData = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Signature Group Settings'); 
     
     //Google Apps Scripts always deals in ranges even if you just want one cell
     //getValue returns an object, so convert it to a string
     var email = userData.getRange(row, 1).getValue().toString();
-    
+
     //quick exit if the user isn't in the domain
     if (!checkUserIsValid(email)){ 
       Logger.log('[%s]\t Skipping user %s',Date(),email);
@@ -81,7 +85,7 @@ function setSignature(template, userData, row){
     sendSignature(email, signature);
     Logger.log('[%s]\t Processing complete for user %s',Date(),email);
 }
-
+ 
 function substituteVariablesFromRow(text, sheet, row) {
   //Generating two lists avoids the need to do lots of individual calls to the sheet
   var tags = sheet.getSheetValues(1, 1, 1, sheet.getLastColumn())[0];
@@ -91,7 +95,7 @@ function substituteVariablesFromRow(text, sheet, row) {
   }  
   return text;
 }
-
+ 
 function substituteGroupVariables(text, dataSheet, lookupSheet, row) {
   //this function is still not great but at least it makes use of getSheet
   var tags = dataSheet.getSheetValues(1, 1, 1, dataSheet.getLastColumn())[0];
@@ -119,7 +123,7 @@ function substituteGroupVariables(text, dataSheet, lookupSheet, row) {
   
   return text;
 }
-
+ 
 function sanitize(text){
   var invalid = ["[","^","$",".","|","?","*","+","(",")"];
   for(m=0;m<invalid.length;m++){
@@ -127,14 +131,13 @@ function sanitize(text){
   }
   return text;
 }
-
-
+ 
+ 
 function tagReplace(tag, value, text){
   var regOpen = sanitize(UserProperties.getProperty('regOpen'));
   var tagOpen = sanitize(UserProperties.getProperty('tagOpen'));
   var regClose = sanitize(UserProperties.getProperty('regClose'));
   var tagClose = sanitize(UserProperties.getProperty('tagClose'));
-  
   
   var regex = new RegExp("(.*)"+regOpen+'(.*?)'+tagOpen+tag+tagClose+'(.*?)'+regClose+"(.*)","g");
   value = value.toString().replace("$","\\$");
@@ -148,7 +151,7 @@ function tagReplace(tag, value, text){
   
   return text;
 }
-
+ 
 function sendSignature(email, signature) {
   // https://developers.google.com/google-apps/email-settings/#updating_a_signature
   var requestData = {
@@ -162,7 +165,7 @@ function sendSignature(email, signature) {
     Browser.msgBox('Error settings signature', msg, Browser.Buttons.OK);
   }
 }
-
+ 
 function checkUserIsValid(user){
   var userList = UserManager.getAllUsers();
   for ( u=0 ; u < userList.length ; u++ ) {
@@ -170,7 +173,7 @@ function checkUserIsValid(user){
   }
   return false;
 }
-
+ 
 function getPayload(signature) {
   //First line is needed for XML, second isn't but we might as well do it for consistency
   signature = signature.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -182,7 +185,7 @@ function getPayload(signature) {
     '<apps:property name="signature" value="'+signature+'" /></atom:entry>';
   return xml;
 }
-
+ 
 function authorisedUrlFetch(email, requestData) {
   //takes request data and wraps oauth authentication around it before sending out the request
   // https://developers.google.com/apps-script/class_oauthconfig
@@ -197,7 +200,7 @@ function authorisedUrlFetch(email, requestData) {
   oAuthConfig.setAuthorizationUrl('https://www.google.com/accounts/OAuthAuthorizeToken');
   oAuthConfig.setAccessTokenUrl('https://www.google.com/accounts/OAuthGetAccessToken');
   UrlFetchApp.addOAuthService(oAuthConfig);
-  
+    
   requestData['oAuthServiceName'] = 'google';
   requestData['oAuthUseToken'] = 'always';
   
@@ -215,7 +218,7 @@ function authorisedUrlFetch(email, requestData) {
   }
   return result;
 }
-
+ 
 function onOpen() {
   //add a toolbar and list the functions you want to call externally
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -223,9 +226,10 @@ function onOpen() {
   menuEntries.push({name: 'Set All Signatures', functionName: 'setAllSignatures'});
   menuEntries.push({name: 'Set Individual Signature', functionName: 'setIndividualSignature'});
   menuEntries.push({name: 'Get Signature', functionName: 'getSignature'});
+  menuEntries.push({name: 'Get All Users', functionName: 'getAllUsers'});
   ss.addMenu('Signatures', menuEntries);
 }
-
+ 
 function startupChecks() {
   //Check that everything that is needed to run is there
   //I don't check that any of it makes sense, just that it exists.
@@ -247,6 +251,7 @@ function startupChecks() {
   requiredSheets.push({name: 'Summary', help: 'A "Summary" sheet must exist that contains a 1 header row and 1 row per user, with no gaps in either the 1st column or row, the 1st row must be the users usernames'});
   requiredSheets.push({name: 'Signature Settings', help: 'A "Signature Settings" sheet must exist that contains a the template in cell 2A and then has 1 header row and 1 row per company wide variable, with no empty header cells'});
   requiredSheets.push({name: 'Signature Group Settings', help: 'A "Signature Group Settings" sheet must exist that contains 3 Rows (setting values, what to substitute, comments) with every third row containing a column header'});
+//  requiredSheets.push({name: 'Users', help: 'A "Users" sheet must exist that can be empty as it will be blown away anyway...'});
   
   var fail = false; 
   for ( s = 0; s < requiredProperties.length; s++) {
@@ -262,7 +267,7 @@ function startupChecks() {
       } 
     }
   } 
-
+ 
   for ( s = 0; s < requiredSheets.length; s++) {
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(requiredSheets[s].name);
     if (sheet == null) {
@@ -274,4 +279,68 @@ function startupChecks() {
   }
   
   return fail;    
+}
+
+function getAllUsers() {
+
+  if ( startupChecks()) { 
+    return;
+  }
+  
+  var userSheet = theSheet.getSheetByName(userSheetName);
+  var userList = UserManager.getAllUsers();
+  var row = [];
+  var userDataSheet = theSheet.getSheetByName(userDataSheetName);
+  var userData = userDataSheet.getSheetValues(1, 1, userDataSheet.getLastRow(), userDataSheet.getLastColumn());
+  var column;
+  var email_column = -1;
+  
+  if (userSheet != null) {
+    theSheet.deleteSheet(userSheet);
+  }
+  
+  userSheet = theSheet.insertSheet(userSheetName);
+  
+  for ( i = 0 ; i < userDataSheet.getLastColumn() ; i++ ) {
+    column = userData[0][i];
+    if (column === 'Email') {
+        email_column = i;
+        break;
+    }
+  }
+    
+  if (email_column === -1) {
+    var msg = "No column callled Email in sheet "+userDataSheetName;
+    Browser.msgBox('Error', msg, Browser.Buttons.OK);
+    return;
+  }
+  
+  row = [];
+  row.push("Given Name");
+  row.push("Family Name");
+  row.push("Email");
+  row.push("In "+userDataSheetName+" sheet");
+  userSheet.appendRow(row);
+  
+  for ( u=0 ; u < userList.length ; u++ ) {
+    row = [];
+    row.push(userList[u].getGivenName());
+    row.push(userList[u].getFamilyName());
+    row.push(userList[u].getEmail());
+    for (i=1; i < userData.length; i++) {
+      var found = false;
+      // this for loop is corect - we exclude title row and the length is one more than actual number
+      if (userData[i][email_column] === userList[u].getEmail()) {
+        found = true;
+        break;
+      }
+      Logger.log(userData[i][email_column]+" "+userList[u].getEmail()+" "+found);
+    }
+    if (found) {
+      row.push("Yes");
+    } else {
+      row.push("No");
+    }
+    userSheet.appendRow(row);
+  }
 }

@@ -2,9 +2,9 @@ This is a simple script at the moment to work with email templates on Google App
 
 It might grow to something more.
 
-Documentation will be added as time permits but the best documentation
-at present is at:
-http://blog.cloudreach.co.uk/2012/09/setting-domain-wide-signatures-for.html
+Documentation will be added as time permits. There is some in the docs directory but needs adding to.
 
 The documentation doesn't mention the new function Ian added - getAllUsers,
 this creates a sheet which checks if everybody is in main sheet or not.
+
+This code was originally written by Juan Canham of Cloudreach who agreed to it being under GPL and Ian McDonald has extended it.

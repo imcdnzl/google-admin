@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<title>Setting domain wide signatures for Google Mail</title>
+</head>
+<body>
+<h1>
+Setting domain wide signatures for Google Mail
+</h1>
+<h2>
+Using Google Apps Script and Google docs
+</h2>
+While Google mail’s <a href="https://productforums.google.com/forum/?hl=en#!category-topic/gmail/managing-settings-and-mail/gYvA9KGEFRw">compliance footers</a> are great for legal compliance, Google currently don’t offer an easy way to set signatures for all your users that are based on user specific variables. I had a quick look at the existing offerings but I also noticed that due to the openness of <a href="http://code.google.com/apis/console">Google’s APIs</a> it's easy to pull data from a Google spreadsheet and push out the signatures to users across a domain. Giving us:
+<br>
+<ul>
+<li>Centrally managed user data in a simple spreadsheet</li>
+<li>A legal compliance footer enforced on all outbound emails</li>
+<li>A quickly customisable signature with contact details that can be edited/updated by users (no more waiting for IT to update your contact details)</li>
+</ul>
+<br>
+<br>
+As <a href="https://developers.google.com/apps-script">Google Apps Script</a> doesn't connect to the Google <a href="https://developers.google.com/google-apps/email-settings/">email settings API</a> directly, this also makes use of Google Apps Script's support of <a href="https://developers.google.com/apps-script/class_oauthconfig">oauth</a> to securely authenticate from Google Apps Script to the Google email settings API. This post includes setup instructions and an overview of how it works, if you just want the code feel free to skip to the end...
+<br>
+<br>
+<h2>
+Variables
+</h2>
+There are three types of variables, they all use the same syntax so it's important to know that they are resolved in the below order:
+<br>
+<ul>
+<li>Company wide variables
+<ul>
+<li>These can be used for Logos or other things that are the same across the entire company</li>
+<li>They are taken from the <i>Signature Settings </i>sheet (this sheet also contains the template)<br>
+<img src="screenshot1.png" alt="signature settings tab"></li>
+</ul></li>
+<li>Group wide variables
+<ul>
+<li>These can be used for team specific parts of a signature, certification logos or office contact info</li>
+<li>These are taken from the <i>Signature Group Settings</i> sheet</li>
+<li>They must mach a Summary sheet column heading, so each user has a separate value for the setting, but they get substitute out if a table to replace them exists in the <i>Signature Group Settings</i> sheet<br>
+<img src="screenshot2.png" alt="signature group tab"><br></li>
+</ul></li>
+<li>User specific variables
+<ul>
+<li>These are per user settings (E.g contact numbers, names, etc)</li>
+<li>They are taken from the <i>Summary</i> sheet column headings<br>
+<img src="screenshot3.png" alt="summary tab"></li>
+</ul></li>
+</ul>
+note: The sheet names mentioned above are currently hardcoded names to prevent too many settings, but if you have a look at code you'll see they can easily be changed.
+<br>
+<h2>Syntax</h2>
+The syntax for the templates is fairly simple (though suggestions for making it more readable are welcomed)
+<br>
+<br>
+<ul>
+<li>The script will prompt you for 4 variables
+<ul>
+<li>regOpen this goes at the front of a section to be substituted, I use ${
+</li>
+<li>regClose this goes at the end of a section to be substituted, I use }$
+</li>
+<li>tagOpen this goes at the front the variable to be substituted, I use {
+</li>
+<li>tagClose this goes at the end of the variable to be substituted, I use }
+</li>
+</ul></li>
+<li>If the variable is blank for the user then the section from regOpen to regClose is removed</li>
+<li>If there is a value for the variable then it is put in between tagOpen and tagClose and one set of opens and closes are removed but the text between them is left</li>
+<li>If you use multiple instances of the variable in a section that might be removed then the regOpen tags must be repeated.</li>
+</ul>
+e.g.
+<br>
+<pre style="background-image: URL(http://2.bp.blogspot.com/_z5ltvMQPaa8/SjJXr_U2YBI/AAAAAAAAAAM/46OqEP32CJ8/s320/codebg.gif); background: #f0f0f0; border: 1px dashed #CCCCCC; color: black; font-family: arial; font-size: 12px; height: auto; line-height: 20px; overflow: auto; padding: 0px; text-align: left; width: 99%;"><code style="color: black; word-wrap: normal;"> [t] - 0207 183 3893 ${ (ext. {Office Ext #}) }&lt;br&gt;  
+ ${[m] -&lt;a ${href="tel:{Mobile #}"} ${value="{Mobile #}"}&gt;{Mobile #}&lt;a&gt;&lt;br&gt;}$  
+ ${{Primary Office}}&lt;br&gt;   
+</code></pre>
+<br>
+<br>
+<h2>
+Authorisation</h2>
+The script requires the user running it has domain superadmin privileges to run as it uses the provisioning API.<br>
+The authorisation chain is a little confusing, but it is done this way to prevent having to put the domain oauth key into the script properties. You have to setup a project, then input it's oauth details into the script.<br>
+
+You could skip this extra step and put the domain wide oauth key in the user script properties are safe and can't be read by other users, however as you're giving domain wide access with these credentials extra security is a good idea.
+
+<br>
+<br>
+<h3>
+Get the Oauth details</h3>
+<ol>
+<li>Go to the Google API console <a href="https://code.google.com/apis/console/b/0/" style="color: #1155cc;" target="_blank">https://code.google.com/apis/console/b/0/</a></li>
+<li>Create a project</li>
+<li>Create an Oauth 2.0 client ID (Type "installed application" &gt; other)</li>
+<li>Copy the clientID "e.g. 10XXXXXXXXXXX.apps.googleusercontent.com" with scope <a href="https://apps-apis.google.com/a/feeds/emailsettings/" style="color: #1155cc;" target="_blank">https://apps-apis.google.com/a/feeds/emailsettings/</a></li>
+<li>Use the ClientID and Client secret from the api console<br><img src="screenshot4.png" alt="client id dialog"></li>
+<li>Put the details into the scripts user properties</li>
+</ol>
+<br>
+<h3>
+Authorising the script</h3>
+<ol>
+<li>The first time you run the script it will ask for authorisation to run the script<br>
+<img src="screenshot5.png" alt="authorisation dialog"></li>
+<li>Then it will ask for authorisation to access the project<br>
+<img src="screenshot6.png" alt="authorisation dialog"></li>
+<li>Then the next time you run it, it will ask for access to the Gmail Settings APIs<br>
+<img src="screenshot7.png" alt="authorisation dialog"><img src="screenshot8.png" alt="authorisation dialog">
+</li>
+<li>After this everything is authorised</li>
+</ol>
+<br>
+<h3>
+Code</h3>
+The code is mostly self explanatory, however if you have any questions or feedback please let me know.<br>
+
+
